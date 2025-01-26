@@ -38,7 +38,7 @@ func startServer() error {
 	}
 	log.Printf("listening on ws://%v", l.Addr())
 
-	cs := newChatServer()
+	cs := newGameServer()
 	s := &http.Server{
 		Handler:      cs,
 		ReadTimeout:  time.Second * 10,
