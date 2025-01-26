@@ -368,7 +368,7 @@ func (cs *gameServer) subscribeHandler(w http.ResponseWriter, r *http.Request) {
 func (cs *gameServer) disbandLobby(l *Lobby) {
 	log.Printf("Disconnecting subscribers from lobby %s", l.id)
 	for i, _ := range l.subscribers {
-		if l.subscribers[i] != nil {
+		if len(l.subscribers) > i && l.subscribers[i] != nil { // TODO: len check is a workaround for deleting subscibers...
 			l.subscribers[i].c.Close(websocket.StatusAbnormalClosure, "TIMOUT")
 		}
 	}
