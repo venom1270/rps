@@ -33,11 +33,11 @@ The winner is the player that reaches 3 points first!
 
 ## Implementation
 
-The server is implemented and game flow is implemented in two steps: *lobby management* and the *game*.
+The server and game flow are implemented in two steps: *lobby management* and the *game*.
 
 ### Lobby management
 
-Lobby management is done using standard HTTP/REST requests. Those reqeusts include:
+Lobby management is done using standard HTTP/REST requests. Those requests include:
 - `/getLobbyList`: gets a list of current lobbies as a string in format: `<LOBBY_NAME>,<PLAYERS>,<MAX_PLAYERS>,<STATE>;...`
 - `/createLobby`: create a new lobby (*requires body string*)
 - `/joinLobby`: join specified lobby (*requires body string*)
@@ -58,7 +58,7 @@ Websocket controls the whole flow of the game. The flow looks roughly like this:
 - If input was confirmed, server responds with `OK`, otherwise repeat
 - Wait for input signal (first bullet point), but if the signal is `1`, end the game
 
-Simulataneously, a goroutine is sending Ping signals every few seconds to check for potential disconnects. If a timeout is detected, connection gets closed. Pinging is not well supported in the `coder/weboscket`library, so I used a custom command: `CMD:123`.
+Simulataneously, a goroutine is sending Ping signals every few seconds to check for potential disconnects. If a timeout is detected, connection gets closed. Pinging is not well supported in the `coder/websocket` library, so I used a custom command: `CMD:123`.
 
 On server side, when one client disconnects, the lobby gets disbanded (all open connections to the lobby get closed).
 
