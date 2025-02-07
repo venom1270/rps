@@ -3,6 +3,7 @@ package game
 import (
 	"log"
 	"math/rand"
+	"strconv"
 )
 
 type PlayerChoice int
@@ -176,4 +177,22 @@ func (g *Game) addScore(player, points int) {
 			g.scores[player] = 0
 		}
 	}
+}
+
+func (g *Game) GetGameDetails(clientIds []string) string {
+	str := ""
+	for i, v := range g.players {
+		str += clientIds[i] + ":[" + strconv.Itoa(g.scores[i]) + ","
+		for _, vv := range v {
+			str += strconv.Itoa(int(vv)) + ","
+		}
+		if str[len(str)-1] == ',' {
+			str = str[:len(str)-1]
+		}
+		str += "];"
+	}
+	if len(str) > 0 {
+		str = str[:len(str)-1]
+	}
+	return str
 }

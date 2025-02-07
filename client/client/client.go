@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -25,14 +24,14 @@ const (
 type Client struct {
 	url string
 	c   *websocket.Conn
-	id  int
+	id  string
 
 	State ClientState
 	Lobby string
 	ctx   context.Context
 }
 
-func NewClient(url string, clientId int) *Client {
+func NewClient(url string, clientId string) *Client {
 
 	cl := &Client{
 		id:    clientId,
@@ -55,7 +54,7 @@ func (cl *Client) Connect(ctx context.Context, url string, lobby string) error {
 	cl.c = c
 	cl.ctx = ctx
 
-	log.Printf("Client  with id '%d' connected to lobby '%s'", cl.id, cl.Lobby)
+	log.Printf("Client  with id '%s' connected to lobby '%s'", cl.id, cl.Lobby)
 
 	go func() {
 
@@ -89,7 +88,7 @@ func (cl *Client) SendMessage(msg string) error {
 
 func (cl *Client) CallMethod(ctx context.Context, msg string, method string) (body string, err error) {
 
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, cl.url+"/"+method, strings.NewReader(strconv.Itoa(cl.id)+" "+msg))
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, cl.url+"/"+method, strings.NewReader(cl.id+" "+msg))
 	resp, err := http.DefaultClient.Do(req)
 
 	/*defer func(resp *http.Response) {

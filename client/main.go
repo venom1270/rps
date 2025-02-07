@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 
 	"github.com/venom1270/RPS/client"
 )
@@ -28,11 +27,11 @@ func run() error {
 	}
 
 	url := os.Args[1]
-	clientId, _ := strconv.Atoi(os.Args[2])
+	clientId := os.Args[2]
 	return startClient(url, clientId)
 }
 
-func startClient(url string, clientId int) error {
+func startClient(url string, clientId string) error {
 
 	//ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
 	//defer cancel()
@@ -143,7 +142,7 @@ func startClient(url string, clientId int) error {
 						// If it's a CMD message, server won't respond so we have to continue.
 
 						// Get scores (test)
-						if choice == "CMD:555" {
+						if choice == "CMD:555" || choice == "CMD:556" {
 							r, _ := cl.NextMessage()
 							fmt.Println(r)
 						}

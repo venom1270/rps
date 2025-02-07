@@ -18,7 +18,7 @@ import (
 )
 
 type Player struct {
-	clientId int
+	clientId string
 	ready    bool
 }
 
@@ -83,16 +83,16 @@ func (cs *gameServer) getMsg(w http.ResponseWriter, r *http.Request) ([]byte, er
 }
 
 // Splits client string. Returns clientId, rest of msg, error
-func (cs *gameServer) splitClientMsg(msg []byte) (int, string, error) {
+func (cs *gameServer) splitClientMsg(msg []byte) (string, string, error) {
 	msgStr := string(msg)
 	if len(msg) < 1 {
-		return 0, "", errors.New("msg len is 0")
+		return "", "", errors.New("msg len is 0")
 	}
 	split := strings.Split(msgStr, " ")
-	clientId, err := strconv.Atoi(split[0])
-	if err != nil {
-		return 0, "", errors.New("error converting clientId to int")
-	}
+	clientId := split[0]
+	/*if err != nil {
+		return "", "", errors.New("error converting clientId to int")
+	}*/
 
 	body := ""
 	if len(split) > 1 {
@@ -197,12 +197,12 @@ func (cs *gameServer) joinLobby(w http.ResponseWriter, r *http.Request) {
 			// TODO: join lobby
 			if len(l.players) < l.maxPlayers {
 				cs.lobbies[i].players = append(cs.lobbies[i].players, Player{clientId: clientId, ready: false})
-				log.Println("Joining player lobby successful! TODO", len(l.players))
+				log.Printf("Joining player %s to lobby %s successful! %d/%d", clientId, l.id, len(l.players), l.maxPlayers)
 				w.WriteHeader(http.StatusAccepted)
 				w.Write([]byte(l.id))
 				return
 			} else {
-				log.Println("Joining player lobby fail! Not enough space")
+				log.Printf("Joining player %s to lobby %s fail! Not enough space!", clientId, l.id)
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
@@ -243,7 +243,7 @@ func (cs *gameServer) exitLobby(w http.ResponseWriter, r *http.Request) {
 	//cs.publishToClient([]byte(responseStr), clientId)
 }
 
-func (cs *gameServer) getClientLobby(clientId int) string {
+func (cs *gameServer) getClientLobby(clientId string) string {
 	for _, l := range cs.lobbies {
 		for _, p := range l.players {
 			if p.clientId == clientId {
@@ -254,7 +254,7 @@ func (cs *gameServer) getClientLobby(clientId int) string {
 	return ""
 }
 
-func (cs *gameServer) removeClientFromLobby(clientId int, lobby string) bool {
+func (cs *gameServer) removeClientFromLobby(clientId string, lobby string) bool {
 	for li, l := range cs.lobbies {
 		if l.id == lobby {
 			for i, v := range cs.lobbies[li].players {
@@ -483,6 +483,7 @@ func (l *Lobby) subscribe(w http.ResponseWriter, r *http.Request) error {
 	for {
 		select {
 		case msg := <-s.msgs:
+			//c.Write(ctx, websocket.MessageBinary, []byte("QWEQWEQWE"))
 			err := writeTimeout(ctx, time.Second*5, c, msg)
 			if err != nil {
 				log.Println("Client disconnected from websocket")
@@ -498,6 +499,17 @@ func (l *Lobby) subscribe(w http.ResponseWriter, r *http.Request) error {
 					msg += fmt.Sprintf("Player %d: %d\n", i, s)
 				}
 				c.Write(ctx, websocket.MessageText, []byte(msg))
+				// TODO: other commands....
+			case 556:
+				log.Printf("GAME STATE REQUEST")
+				// Get player names
+				var playerIds []string
+				for _, s := range l.players {
+					playerIds = append(playerIds, s.clientId)
+				}
+				gameDetails := "CMD:556 " + l.game.GetGameDetails(playerIds)
+				fmt.Printf("Sending detail string: %s", gameDetails)
+				c.Write(ctx, websocket.MessageText, []byte(gameDetails))
 				// TODO: other commands....
 			case 123:
 				// Ping operation, do nothing for now... maybo do "Pong" in the future
@@ -655,7 +667,8 @@ func (l *Lobby) startGame() {
 		}
 
 		winner := l.game.CompleteRound()
-		l.publish([]byte("Player " + strconv.Itoa(winner) + " won the round!"))
+		//l.publish([]byte("Player " + strconv.Itoa(winner) + " won the round!"))
+		l.publish([]byte("Winner: " + strconv.Itoa(winner)))
 
 		log.Println("ROUND COMPLETED!")
 

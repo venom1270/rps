@@ -4,12 +4,13 @@ Proof-of-concept GO server for hosting a simple Rock-Paper-Scissors (RPS) server
 
 ## Features
 
-- Game server
+- Game server (GO)
   - Hosting lobbies (max 2 players)
   - Game logic
-- Game client
+- Game client (GO)
   - Make and join lobbies (REST)
   - Play the game (websockets)
+- Soon™ Unity game client
 
 Common scripts for running a server, clients, and building Docker images are provided.
 
@@ -20,6 +21,13 @@ The game is currently hosted on [Render](https://render.com/).
 URL: `https://rps-e20j.onrender.com`
 
 They offer a great free plan without the need to input a credit card!
+
+## Changelog
+
+- Some server changes have been made to better accomodate Unity client
+  - clientId changed from int to string
+  - added command `556` (game state)
+  - other minor changes regarding server responses
 
 ## The game
 
@@ -66,6 +74,17 @@ In short: there are two kinds of messages: *normal* and *command* messages. *Com
 
 There may still be some situations where unexpected network interruptions break the clients (or server), but the most common cases should be handled by the current implementation.
 
+#### Commands
+
+- 123
+  - "Ping" command
+  - May be removed in future
+- 555
+  - Returns current scores in readable form
+  - Temporary
+- 556
+  - Return current game state in format`clientId:[score,choice1,choice2,...];...`)
+
 ## Future
 
-The idea is to have a standalone custom game server that I can build any kind of client I want to. The next step (besides polishing the server) would be to make a client with some nice UI/graphics, such as Unity.
+The idea is to have a standalone custom game server that I can build any kind of client I want to. The next step (besides polishing the server) would be to make a client with some nice UI/graphics, such as Unity, which is already in development.
