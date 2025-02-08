@@ -194,7 +194,6 @@ func (cs *gameServer) joinLobby(w http.ResponseWriter, r *http.Request) {
 
 	for i, l := range cs.lobbies {
 		if l.id == msgStr {
-			// TODO: join lobby
 			if len(l.players) < l.maxPlayers {
 				cs.lobbies[i].players = append(cs.lobbies[i].players, Player{clientId: clientId, ready: false})
 				log.Printf("Joining player %s to lobby %s successful! %d/%d", clientId, l.id, len(l.players), l.maxPlayers)
