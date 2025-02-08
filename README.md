@@ -29,6 +29,8 @@ They offer a great free plan without the need to input a credit card!
   - added command `556` (game state)
   - other minor changes regarding server responses
 
+- There was a peculiar problem where comparison of two identical strings, e.g. `qwe` and `qwe` returned false. The issues was with wrong handling of input on the Unity client - the client sent string `qwe`, but with an added Unicode character at the end: `\u200b`, making the "real" string `qwe\u200b`. That is called *unicode zero-width space (ZWSP)*. I was sending the raw input from Unity InputField, instead of the "correct" one, which resulted in the lobby id string "mismatch". Visually the strings are the same, but one has length 3, and the other length 6 (with the added ZWSP)!
+
 ## The game
 
 The game is a simple *RPS* game with an additional twist - the *JOKER*.
