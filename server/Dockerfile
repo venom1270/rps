@@ -9,7 +9,10 @@ RUN go mod download
 
 COPY main.go ./
 COPY server.go ./
+COPY lobby.go ./
 COPY game/ ./game/
+
+COPY messaging/ ./messaging/
 
 RUN go build -o main .
 

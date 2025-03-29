@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
+	"github.com/venom1270/RPS/messaging"
 )
 
 type ClientState int
@@ -42,14 +43,23 @@ func NewClient(url string, clientId string) *Client {
 	return cl
 }
 
-func (cl *Client) Connect(ctx context.Context, url string, lobby string) error {
+func (cl *Client) Connect(ctx context.Context, url string, method, lobby string) error {
 
 	log.Printf("Trying to connect client '%d' to lobby '%s'", cl.id, lobby)
 
-	c, _, err := websocket.Dial(ctx, url+"/subscribe/"+lobby, nil)
+	finalUrl := url + "/" + method + "/" + lobby + "/" + cl.id
+
+	log.Printf("Final URL: %s", finalUrl)
+
+	c, _, err := websocket.Dial(ctx, finalUrl, nil)
 	if err != nil {
 		return err
 	}
+
+	/*c, _, err := websocket.Dial(ctx, url+"/subscribe/"+lobby, nil)
+	if err != nil {
+		return err
+	}*/
 
 	cl.c = c
 	cl.ctx = ctx
@@ -66,7 +76,8 @@ func (cl *Client) Connect(ctx context.Context, url string, lobby string) error {
 				fmt.Println("CTX closed, stopping pings...")
 				return
 			default:
-				err := c.Write(ctx, websocket.MessageText, []byte("CMD:123"))
+				//pingMsg := messaging.Message{messaging.MessageCommand, messaging.Command(123), "PING"}
+				//err := c.Write(ctx, websocket.MessageText, pingMsg.Parse())
 				//log.Println("Ping sent....")
 				if err != nil {
 					log.Println("Ping error or server disconnected:", err)
@@ -83,7 +94,13 @@ func (cl *Client) Connect(ctx context.Context, url string, lobby string) error {
 }
 
 func (cl *Client) SendMessage(msg string) error {
+	log.Printf("SENDING MESSAGE: %s", msg)
 	return cl.c.Write(cl.ctx, websocket.MessageText, []byte(msg))
+}
+
+func (cl *Client) SendMessage2(msg messaging.Message) error {
+	log.Printf("SENDING MESSAGE: %v", msg)
+	return cl.c.Write(cl.ctx, websocket.MessageText, []byte(msg.Parse()))
 }
 
 func (cl *Client) CallMethod(ctx context.Context, msg string, method string) (body string, err error) {

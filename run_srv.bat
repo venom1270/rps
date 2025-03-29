@@ -1,2 +1,2 @@
 cd server
-go run main.go .\server.go localhost:8080
+go run main.go .\server.go .\lobby.go localhost:8080

@@ -8,7 +8,12 @@ import (
 	"os"
 
 	"github.com/venom1270/RPS/client"
+	"github.com/venom1270/RPS/messaging"
 )
+
+var ctx context.Context
+var cancel context.CancelFunc
+var cl *client.Client
 
 func main() {
 	log.SetFlags(0)
@@ -35,9 +40,9 @@ func startClient(url string, clientId string) error {
 
 	//ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
 	//defer cancel()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel = context.WithCancel(context.Background())
 
-	cl := client.NewClient(url, clientId)
+	cl = client.NewClient(url, clientId)
 
 	response := ""
 
@@ -71,17 +76,28 @@ func startClient(url string, clientId string) error {
 				fmt.Println(response)
 			}
 		case "2":
-			response, err = cl.CallMethod(ctx, msg, "createLobby")
+			err = cl.Connect(ctx, url, "createLobby", msg)
 			if err != nil {
-				fmt.Println(err)
-			}
-		case "3":
-			response, err = cl.CallMethod(ctx, msg, "joinLobby")
-			if err != nil {
-				fmt.Println(err)
+				log.Printf("ERROR CREATING AND JOINING TO LOBBY!!! %v", err)
+				break
 			}
 			cl.State = client.IN_LOBBY
-			cl.Lobby = response
+			cl.Lobby = msg
+
+			websocketHandling()
+
+		case "3":
+			err = cl.Connect(ctx, url, "joinLobby", msg)
+			if err != nil {
+				log.Printf("ERROR JOINING TO LOBBY!!! %v", err)
+				break
+			}
+
+			cl.State = client.IN_LOBBY
+			cl.Lobby = msg
+
+			websocketHandling()
+
 		case "4":
 			response, err = cl.CallMethod(ctx, msg, "exitLobby")
 			if err != nil {
@@ -95,85 +111,14 @@ func startClient(url string, clientId string) error {
 			}
 			cl.State = client.IN_LOBBY_READY
 
-			err = cl.Connect(ctx, url, cl.Lobby)
+			err = cl.Connect(ctx, url, "TODO_DELETE THIS", cl.Lobby)
 			if err != nil {
 				log.Printf("ERROR CONNECTING TO LOBBY!!! %v", err)
 				break
 			}
 
 			// Start game - look at websocket messages
-
-			serverOk := true
-			gameEnd := false
-
-			for serverOk {
-				for {
-					msg, err := cl.NextMessage()
-					if err != nil {
-						continue
-					}
-					if msg == "0" {
-						fmt.Println("Input signal recived. Please input your choice (0-3)\n0 - ROCK\n1 - PAPER\n2 - SCISSORS\n3 - JOKER (dangerous card, defeated by SCISSORS and sometimes JOKER)\n")
-						break
-					} else if msg == "1" {
-						fmt.Println("Game ended. Disconnecting...")
-						gameEnd = true
-						break
-					} else {
-						fmt.Println(msg)
-					}
-				}
-
-				if gameEnd {
-					break
-				}
-
-				for {
-					var choice string
-					_, err = fmt.Scan(&choice)
-					if err != nil {
-						fmt.Printf("Invalid input! %v\n", err)
-						continue
-					}
-
-					cl.SendMessage(choice)
-
-					if len(choice) >= 4 && choice[0:4] == "CMD:" {
-						// If it's a CMD message, server won't respond so we have to continue.
-
-						// Get scores (test)
-						if choice == "CMD:555" || choice == "CMD:556" {
-							r, _ := cl.NextMessage()
-							fmt.Println(r)
-						}
-
-						// TODO: this is ugly :(
-						continue
-					}
-
-					response, err := cl.NextMessage()
-					if err != nil {
-						fmt.Printf("Error receiving response from server, lobby probably disbanded due to timeout of one of the clients. %v", err)
-						serverOk = false
-						break
-					}
-
-					if response == "OK" {
-						fmt.Println("Choice accepted, waiting for other player(s)...")
-						break
-					} else {
-						fmt.Printf("Choice was not accepted! %s\n", response)
-						continue
-					}
-
-				}
-			}
-
-			// GAME END
-			cancel()
-
-			// Create new context
-			ctx, cancel = context.WithCancel(context.Background())
+			websocketHandling()
 
 		default:
 			fmt.Println("INVALID METHOD!")
@@ -182,4 +127,90 @@ func startClient(url string, clientId string) error {
 	}
 
 	return nil
+}
+
+func websocketHandling() {
+
+	var err error
+
+	serverOk := true
+	gameEnd := false
+
+	for serverOk {
+
+		go func() {
+			for {
+				msg, err := cl.NextMessage()
+				log.Printf("GOT MESSAGE: %s", msg)
+				if err != nil {
+					continue
+				}
+				if msg == "0" {
+					fmt.Println("Input signal recived. Please input your choice (0-3)\n0 - ROCK\n1 - PAPER\n2 - SCISSORS\n3 - JOKER (dangerous card, defeated by SCISSORS and sometimes JOKER)\n")
+					break
+				} else if msg == "1" {
+					fmt.Println("Game ended. Disconnecting...")
+					gameEnd = true
+					break
+				} else {
+					fmt.Println(msg)
+				}
+			}
+
+			if gameEnd {
+				//break
+			}
+		}()
+
+		for {
+			var choice string
+			_, err = fmt.Scan(&choice)
+			if err != nil {
+				fmt.Printf("Invalid input! %v\n", err)
+				continue
+			}
+
+			// To simulate ready
+			if len(choice) > 1 && choice[0:2] == "0:" {
+				// If it's a CMD message, server won't respond so we have to continue.
+				cl.SendMessage(choice)
+				// Get scores (test)
+				//if choice == "CMD:555" || choice == "CMD:556" || choice == "CMD:0" {
+				//r, _ := cl.NextMessage()
+				//fmt.Println(r)
+				//}
+
+				// TODO: this is ugly :(
+				continue
+			}
+
+			cl.SendMessage2(messaging.Message{
+				Type:    messaging.MessageText,
+				Cmd:     messaging.CommandChoice,
+				Content: choice,
+			})
+
+			/*response, err := cl.NextMessage()
+			if err != nil {
+				fmt.Printf("Error receiving response from server, lobby probably disbanded due to timeout of one of the clients. %v", err)
+				serverOk = false
+				break
+			}
+
+			if response == "OK" {
+				fmt.Println("Choice accepted, waiting for other player(s)...")
+				break
+			} else {
+				fmt.Printf("Choice was not accepted! %s\n", response)
+				continue
+			}*/
+
+		}
+	}
+
+	// GAME END
+	cancel()
+
+	// Create new context
+	ctx, cancel = context.WithCancel(context.Background())
 }

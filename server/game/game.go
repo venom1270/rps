@@ -87,7 +87,7 @@ func (g *Game) CompleteRound() int {
 			winner = 0
 		} else if p2 == PAPER {
 			winner = 1
-		} else if p2 == JOKER {
+		} else if p2 == 0 {
 			winner = 1
 		}
 	case PAPER:
@@ -182,7 +182,7 @@ func (g *Game) addScore(player, points int) {
 func (g *Game) GetGameDetails(clientIds []string) string {
 	str := ""
 	for i, v := range g.players {
-		str += clientIds[i] + ":[" + strconv.Itoa(g.scores[i]) + ","
+		str += clientIds[i] + "=[" + strconv.Itoa(g.scores[i]) + ","
 		for _, vv := range v {
 			str += strconv.Itoa(int(vv)) + ","
 		}
