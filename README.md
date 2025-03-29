@@ -9,8 +9,9 @@ Proof-of-concept GO server for hosting a simple Rock-Paper-Scissors (RPS) server
   - Game logic
 - Game client (GO)
   - Make and join lobbies (REST)
+  - Lobby state management (websockets)
   - Play the game (websockets)
-- Soon™ Unity game client
+- ~~Soon™~~ Unity game client (it's done!)
 
 Common scripts for running a server, clients, and building Docker images are provided.
 
@@ -51,16 +52,24 @@ Lobby management is done using standard HTTP/REST requests. Those requests inclu
 - `/getLobbyList`: gets a list of current lobbies as a string in format: `<LOBBY_NAME>,<PLAYERS>,<MAX_PLAYERS>,<STATE>;...`
 - `/createLobby`: create a new lobby (*requires body string*)
 - `/joinLobby`: join specified lobby (*requires body string*)
-- `/exitLobby`: exit current lobby
-- `/ready`: set ready  and wait for server signal for game start - this will estabilsh a websocket connection from client to server, and block all input until server signal
 
 All methods require body string in the form of `<clientId> <rest of the message>`, for example `1 myLobby`. 
 
-When client is ready, a websocket connection is established by calling the `/subscribe/<lobby>` method.
+A websocket connection is established upon joining a lobby (either via `joinLobby` or `createLobby`).
 
 ### Websockets
 
-Websocket controls the whole flow of the game. The flow looks roughly like this:
+Communication is based on a special packet consisting of three parts:
+
+`TYPE` - `COMMAND` - `CONTENT`
+
+- `TYPE` defines the type: `text` or `command` type packet. In special cases when the packet is unable to be parsed, it can be set to `corrupted`.
+  - `text` packets are just text that the client can display, human readable
+  - `command` packets control the flow and state of the game or connection
+- `COMMAND` specifies the command in case of packet type `command`. It's a number, defined in an enum. Might change to string to ensure easier compatibility between different clients
+- `CONTENT` is just string content. Based on the command, the content bears different levels of importantance. Some commands have empty (`""`) content, while others have encoded game states etc.
+
+By using websockets with above messaging protocol, we control the whole flow of the game. The flow looks roughly like this **[THIS MAY BE OUTDATED]**:
 
 - Wait for game start/input signal from server (`0`)
 - Read player/client input (0-3) and send it to server
@@ -78,15 +87,10 @@ There may still be some situations where unexpected network interruptions break 
 
 #### Commands
 
-- 123
-  - "Ping" command
-  - May be removed in future
-- 555
-  - Returns current scores in readable form
-  - Temporary
-- 556
-  - Return current game state in format`clientId:[score,choice1,choice2,...];...`)
+Commands are defined in an *enum* (GO does not have native enums, os it's a close approximation). Look in the `messaging` module for a list of available commands.
 
 ## Future
 
-The idea is to have a standalone custom game server that I can build any kind of client I want to. The next step (besides polishing the server) would be to make a client with some nice UI/graphics, such as Unity, which is already in development.
+✅The idea is to have a standalone custom game server that I can build any kind of client I want to. The next step (besides polishing the server) would be to make a client with some nice UI/graphics, such as Unity, which is already in development.
+
+Next steps would be to implement a more complex game - which was *the real* goal from the start.
